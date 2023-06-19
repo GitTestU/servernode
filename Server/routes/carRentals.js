@@ -1,20 +1,40 @@
 const express = require("express");
 const router = express.Router();
-
+const bcrypt = require("bcrypt");
 const CarRentals = require("../models/CarRentals");
 
 router.post("/postcarrentals", async (req, res) => {
   try {
-    // Create a new Car Rental
-    const newCarRentals = new CarRentals(req.body);
+    // Create a new CarRentals
+    const {
+      companyName,
+      email,
+      phoneNumber,
+      serviceArea,
+      userName,
+      password,
+      Address,
+    } = req.body;
 
-    // Save the data to the database
+    const saltRounds = 10;
+    // Hash passpord
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newCarRentals = new CarRentals({
+      companyName,
+      email,
+      phoneNumber,
+      serviceArea,
+      userName,
+      password: hashedPassword,
+      Address,
+    });
+    // Save the user to the database
     await newCarRentals.save();
-
-    return res.status(200).send("CarRentals saved successfully");
+    res.status(201).json({ message: "carRentals registered successfully" });
   } catch (error) {
-    console.error("Error saving CarRentals:", error);
-    return res.status(500).send("Error saving CarRentals");
+    res.status(500).json({ message: "Failed to register carRentals" });
+    console.log(error);
   }
 });
 
@@ -46,21 +66,25 @@ router.delete("/deletecarrentals/:id", async (req, res) => {
   }
 });
 
-router.put('/updatecarrentals/:id' , async(req , res) => {
+router.put("/updatecarrentals/:id", async (req, res) => {
   try {
     const rentalId = req.params.id;
-    const updatedData = req.body
+    const updatedData = req.body;
 
-    const updatedRental = await CarRentals.findByIdAndUpdate(rentalId, updatedData,{new: true});
+    const updatedRental = await CarRentals.findByIdAndUpdate(
+      rentalId,
+      updatedData,
+      { new: true }
+    );
 
-    if(!updatedRental) {
-      return res.status(404).json({massage : "Car rental not found"})
-    }else{
-      return res.status(200).json(updatedRental)
+    if (!updatedRental) {
+      return res.status(404).json({ massage: "Car rental not found" });
+    } else {
+      return res.status(200).json(updatedRental);
     }
   } catch (error) {
     console.error("Error updating CarRentals : ", error);
     return res.status(500).send("Error updating CarRentals");
   }
-})
+});
 module.exports = router;

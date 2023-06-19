@@ -1,17 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const Customer = require("../models/Customer");
+const CarRentals = require("../models/CarRentals")
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const sgMail = require("@sendgrid/mail");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-sgMail.setApiKey(process.env.APIKEY);
+sgMail.setApiKey('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');
 const secretKey = process.env.SECRET_KEY;
-const emailSender = process.env.EMAIL;
-const emailPassword = process.env.EMAIL_PASS;
-console.log(emailSender, emailPassword);
+
 // Generate reset token for forget password token
 const generateResetToken = (customerId) => {
   const token = jwt.sign({ customerId }, secretKey, { expiresIn: 30 });
@@ -66,6 +65,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign({ customerId: customer._id }, secretKey, {
       expiresIn: "30s",
     });
+
     res.status(200).json({ massage: "Login succesfully", token: token });
   } catch (error) {
     res.status(500).json({ message: "Failed to Login" });
@@ -74,6 +74,28 @@ router.post("/login", async (req, res) => {
 });
 
 //Forget password
+
+router.post('/loginAdmin',async (req , res) => {
+  try {
+    const {userName , password} = req.body;
+    const carRentals = await CarRentals.findOne({userName});
+
+    if(!carRentals){
+      return res.status(404).json({ message : 'CarRentals not found' });
+    }
+    const passwordMatch = await bcrypt.compare(password, carRentals.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ massage: " Invalid password" });
+    }
+    const token = jwt.sign({ AdminId: CarRentals._id }, secretKey, {
+      expiresIn: "30s",
+    });
+
+    res.status(200).json({ massage: "Login succesfully" ,token : token });
+  } catch (error) {
+    console.log(error);
+  }
+})
 
 router.post("/forget-password", async (req, res) => {
   const { email } = req.body;
@@ -95,16 +117,24 @@ router.post("/forget-password", async (req, res) => {
     const resetLink = `https://www.example.com/reset-password?token=${resetToken}`;
     //send password reset email
     const msg = {
-      to: email,
-      from: process.env.EMAIL,
+      to: "goz12320@nezid.com",
+      from: 'eneskutulman4@gmail.com',
       subject: "Reset Password",
       text: "click here to reset",
       html: `<p>Merhaba,</p>
       <p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
       <a href="${resetLink}">Şifre Sıfırlama</a>`,
     };
-    
-    await sgMail.send(msg);
+
+    sgMail
+    .send(msg)
+    .then((res) => {
+      console.log(res);
+      console.log('Email sent')
+    })
+    .catch((error) => {
+      console.error(error)
+    })
     //return seccess response
     res.status(200).json({ message: "Password reset link sent successfully" });
     //expire token
@@ -119,5 +149,7 @@ router.post("/forget-password", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+router.post('')
 
 module.exports = router;

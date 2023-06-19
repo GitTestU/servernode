@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 const customerSchema = new mongoose.Schema({
+  role:{
+    type:String,
+    default : "user",
+  },
   firstName: {
     type: String,
     required: true,
